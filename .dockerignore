@@ -1,0 +1,27 @@
+# Version control
+.git
+.gitignore
+
+# Dependencies - reinstalled fresh inside the image via `npm ci`
+node_modules
+
+# Build output - produced inside the image; a stale local copy would
+# otherwise get copied in and mask the real build
+dist
+
+# Docs
+*.md
+README.md
+
+# Env files - never bake secrets into the image
+.env
+.env.*
+
+# Editor/OS cruft
+.vscode/
+.idea/
+.DS_Store
+
+# Not needed inside the image itself
+Dockerfile
+.dockerignore
