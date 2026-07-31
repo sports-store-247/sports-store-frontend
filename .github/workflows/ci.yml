@@ -1,0 +1,128 @@
+name: CI
+
+on:
+  pull_request:
+    branches: [main]
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+env:
+  IMAGE_NAME: sports-store-frontend
+
+jobs:
+  # There's no test script in package.json yet (scripts are dev/build/
+  # preview only) — no unit tests exist in this repo today. Until some
+  # get added, this job's only job is to prove the app actually compiles.
+  test:
+    name: test
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build (compile check)
+        run: npm run build
+
+  build:
+    name: build
+    needs: test
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      # push:false — a PR must never publish an image, only prove the
+      # Dockerfile builds. load:true pulls the built image into the local
+      # Docker daemon so the trivy job below can scan it.
+      - name: Build image (validate only)
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          push: false
+          load: true
+          tags: ${{ env.IMAGE_NAME }}:ci
+
+      - name: Save image for trivy job
+        run: docker save ${{ env.IMAGE_NAME }}:ci -o /tmp/${{ env.IMAGE_NAME }}.tar
+
+      - name: Upload image artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: image-tar
+          path: /tmp/${{ env.IMAGE_NAME }}.tar
+          retention-days: 1
+
+  trivy:
+    name: trivy
+    needs: build
+    runs-on: ubuntu-latest
+    steps:
+      - name: Download image artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: image-tar
+          path: /tmp
+
+      - name: Load image
+        run: docker load -i /tmp/${{ env.IMAGE_NAME }}.tar
+
+      - name: Scan image with Trivy
+        uses: aquasecurity/trivy-action@v0.36.0
+        with:
+          image-ref: ${{ env.IMAGE_NAME }}:ci
+          severity: CRITICAL,HIGH
+          exit-code: "1"
+          ignore-unfixed: true
+
+  push-to-ecr:
+    name: push-to-ecr
+    needs: [test, build, trivy]
+    runs-on: ubuntu-latest
+    # Only runs on an actual push to main, never on a PR — a PR must
+    # never publish an image.
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    permissions:
+      id-token: write
+      contents: read
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Compute image tag (VERSION + short SHA, never latest)
+        id: version
+        run: echo "tag=$(cat VERSION)-${GITHUB_SHA::7}" >> "$GITHUB_OUTPUT"
+
+      - name: Configure AWS credentials (OIDC, no static keys)
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: arn:aws:iam::369113522748:role/sports-store-github-actions-ecr-role
+          aws-region: us-east-1
+
+      - name: Log in to Amazon ECR
+        id: ecr-login
+        uses: aws-actions/amazon-ecr-login@v2
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Build and push image
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          push: true
+          tags: ${{ steps.ecr-login.outputs.registry }}/${{ env.IMAGE_NAME }}:${{ steps.version.outputs.tag }}

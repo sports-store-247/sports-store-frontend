@@ -20,7 +20,7 @@ RUN npm run build
 # ---------------------------------------------------------------------
 # Stage 2: serve the build output with NGINX
 # ---------------------------------------------------------------------
-FROM nginx:1.27-alpine AS runtime
+FROM nginx:stable-alpine AS runtime
 
 # SPA fallback so client-side routes (e.g. /products/slug) resolve to
 # index.html instead of 404ing on a hard refresh — see nginx.conf.
