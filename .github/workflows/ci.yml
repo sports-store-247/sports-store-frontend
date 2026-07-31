@@ -3,6 +3,8 @@ name: CI
 on:
   pull_request:
     branches: [main]
+  push:
+    branches: [main]
 
 permissions:
   contents: read
@@ -87,17 +89,40 @@ jobs:
           exit-code: "1"
           ignore-unfixed: true
 
-  # --------------------------------------------------------------------
-  # TODO (tomorrow): push-to-ecr job.
-  #   - Separate `on: push: branches: [main]` trigger (or a second
-  #     workflow file), gated so it never runs on a PR.
-  #   - needs: [test, build, trivy]
-  #   - permissions: id-token: write   (required for OIDC — add at the
-  #     job level, don't widen it for the whole workflow)
-  #   - Read VERSION file + short SHA -> tag, e.g. 1.2.0-${GITHUB_SHA::7}
-  #   - aws-actions/configure-aws-credentials@v4 with role-to-assume set
-  #     to the OIDC role from sports-store-infrastructure's
-  #     github-oidc.tf (blocked until that PR is merged + applied)
-  #   - aws-actions/amazon-ecr-login@v2, then build+push with the
-  #     version tag. Never push `latest`.
-  # --------------------------------------------------------------------
+  push-to-ecr:
+    name: push-to-ecr
+    needs: [test, build, trivy]
+    runs-on: ubuntu-latest
+    # Only runs on an actual push to main, never on a PR — a PR must
+    # never publish an image.
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    permissions:
+      id-token: write
+      contents: read
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Compute image tag (VERSION + short SHA, never latest)
+        id: version
+        run: echo "tag=$(cat VERSION)-${GITHUB_SHA::7}" >> "$GITHUB_OUTPUT"
+
+      - name: Configure AWS credentials (OIDC, no static keys)
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: arn:aws:iam::369113522748:role/sports-store-github-actions-ecr-role
+          aws-region: us-east-1
+
+      - name: Log in to Amazon ECR
+        id: ecr-login
+        uses: aws-actions/amazon-ecr-login@v2
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Build and push image
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          push: true
+          tags: ${{ steps.ecr-login.outputs.registry }}/${{ env.IMAGE_NAME }}:${{ steps.version.outputs.tag }}
