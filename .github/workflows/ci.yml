@@ -110,7 +110,7 @@ jobs:
       - name: Configure AWS credentials (OIDC, no static keys)
         uses: aws-actions/configure-aws-credentials@v4
         with:
-          role-to-assume: arn:aws:iam::369113522748:role/sports-store-github-actions-ecr-role
+          role-to-assume: arn:aws:iam::765858872029:role/sports-store-github-actions-ecr-role
           aws-region: us-east-1
 
       - name: Log in to Amazon ECR
@@ -125,4 +125,4 @@ jobs:
         with:
           context: .
           push: true
-          tags: ${{ steps.ecr-login.outputs.registry }}/${{ env.IMAGE_NAME }}:${{ steps.version.outputs.tag }}
+          tags: ${{ steps.ecr-login.outputs.registry }}/${{ env.IMAGE_NAME }}:${{ steps.version.outputs.tag }},${{ steps.ecr-login.outputs.registry }}/${{ env.IMAGE_NAME }}:latest
