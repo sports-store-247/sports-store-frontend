@@ -20,17 +20,19 @@ RUN npm run build
 # ---------------------------------------------------------------------
 # Stage 2: serve the build output with NGINX
 # ---------------------------------------------------------------------
-FROM nginx:stable-alpine AS runtime
+# nginxinc/nginx-unprivileged (not the stock nginx image) ships already
+# configured to run as a non-root user: it listens on 8080 instead of 80
+# (binding <1024 requires root) and its master process starts as uid 101
+# (nginx) instead of root, so Kubernetes' runAsNonRoot: true works without
+# extra chown/port plumbing.
+FROM nginxinc/nginx-unprivileged:alpine AS runtime
 
 # SPA fallback so client-side routes (e.g. /products/slug) resolve to
 # index.html instead of 404ing on a hard refresh — see nginx.conf.
 COPY nginx.conf /etc/nginx/conf.d/default.conf
 COPY --from=build /app/dist /usr/share/nginx/html
 
-# The base image's worker processes already run as the unprivileged
-# `nginx` user; only the master process needs root, to bind port 80.
-# (CMD is inherited from the base image: `nginx -g "daemon off;"`.)
-EXPOSE 80
+EXPOSE 8080
 
 HEALTHCHECK --interval=30s --timeout=3s --start-period=5s \
-  CMD wget -qO- http://localhost/ >/dev/null || exit 1
+  CMD wget -qO- http://localhost:8080/ >/dev/null || exit 1
