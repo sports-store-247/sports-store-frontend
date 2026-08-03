@@ -127,4 +127,4 @@ jobs:
         with:
           context: .
           push: true
-          tags: ${{ steps.ecr-login.outputs.registry }}/${{ env.IMAGE_NAME }}:${{ steps.version.outputs.tag }},${{ steps.ecr-login.outputs.registry }}/${{ env.IMAGE_NAME }}:latest
+          tags: ${{ steps.ecr-login.outputs.registry }}/${{ env.IMAGE_NAME }}:${{ steps.version.outputs.tag }}
