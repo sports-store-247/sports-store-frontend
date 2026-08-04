@@ -152,15 +152,12 @@ jobs:
         run: |
           cd deployments
           SERVICE_KEY=${IMAGE_NAME#sports-store-}
-          BRANCH_NAME="update-${SERVICE_KEY}-${{ steps.version.outputs.tag }}"
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
-          git checkout -b $BRANCH_NAME
           yq -i ".services.${SERVICE_KEY}.image.tag = \"${{ steps.version.outputs.tag }}\"" helm/sports-store/environments/production/images.yaml
           git add helm/sports-store/environments/production/images.yaml
           git commit -m "chore(gitops): update ${SERVICE_KEY} image to ${{ steps.version.outputs.tag }}"
-          git push -u origin $BRANCH_NAME
-          gh pr create --title "chore(gitops): update ${SERVICE_KEY} image to ${{ steps.version.outputs.tag }}" --body "Automated image update."
+          git push
         env:
           IMAGE_NAME: ${{ env.IMAGE_NAME }}
           GH_TOKEN: ${{ secrets.GITOPS_PAT }}
