@@ -127,3 +127,36 @@ jobs:
           context: .
           push: true
           tags: ${{ steps.ecr-login.outputs.registry }}/${{ env.IMAGE_NAME }}:${{ steps.version.outputs.tag }}
+
+  update-gitops:
+    name: update-gitops
+    needs: push-to-ecr
+    runs-on: ubuntu-latest
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    steps:
+      - name: Checkout Microservice
+        uses: actions/checkout@v4
+
+      - name: Compute image tag
+        id: version
+        run: echo "tag=$(cat VERSION)-${GITHUB_SHA::7}" >> "$GITHUB_OUTPUT"
+
+      - name: Checkout GitOps Repository
+        uses: actions/checkout@v4
+        with:
+          repository: sports-store-247/sports-store-deployments
+          token: ${{ secrets.GITOPS_PAT }}
+          path: deployments
+
+      - name: Update images.yaml
+        run: |
+          cd deployments
+          SERVICE_KEY=${IMAGE_NAME#sports-store-}
+          yq -i ".services.${SERVICE_KEY}.image.tag = \"${{ steps.version.outputs.tag }}\"" helm/sports-store/environments/production/images.yaml
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add helm/sports-store/environments/production/images.yaml
+          git commit -m "chore(gitops): update ${SERVICE_KEY} image to ${{ steps.version.outputs.tag }}"
+          git push
+        env:
+          IMAGE_NAME: ${{ env.IMAGE_NAME }}
