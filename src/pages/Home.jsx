@@ -41,7 +41,7 @@ export default function Home() {
         <div className="hero-shade" />
         <div className="hero-content">
           <span className="eyebrow">Stryda performance / 2026</span>
-          <h1>Move faster.<br />Go further.!!!</h1>
+          <h1>Move faster.<br />Go further.</h1>
           <p>Technical essentials built to keep up with every mile, lift and leap.</p>
           <div className="hero-actions">
             <Link to="/products" className="button">Shop the collection</Link>
