@@ -141,8 +141,9 @@ a {
 }
 
 .hero-image {
-  object-fit: cover;
-  object-position: center 45%;
+  object-fit: contain;
+  object-position: center;
+  background: var(--ink);
 }
 
 .hero-shade {
