@@ -38,6 +38,7 @@ export default function Home() {
       />
       <section className="hero">
         <img className="hero-image" src={HERO_IMAGE} alt="Runner training outdoors" />
+        <span className="hero-caption">Thank You IITC</span>
       </section>
 
       <section className="benefits" aria-label="Store benefits">
