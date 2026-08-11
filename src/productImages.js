@@ -1,5 +1,3 @@
-import heroImg from './assets/hero.jpg'
-
 const PRODUCT_IMAGES = {
   'velocity-runner': 'https://images.unsplash.com/photo-1542291026-7eec264c27ff?auto=format&fit=crop&w=1200&q=85',
   'velocity-runner-w': 'https://images.unsplash.com/photo-1496579538151-212636d0b01c?auto=format&fit=crop&w=1200&q=85',
@@ -32,7 +30,7 @@ const CATEGORY_IMAGES = {
   accessories: PRODUCT_IMAGES['pro-gym-duffel'],
 }
 
-export const HERO_IMAGE = heroImg
+export const HERO_IMAGE = 'https://images.unsplash.com/photo-1538805060514-97d9cc17730c?auto=format&fit=crop&w=1800&q=85'
 
 export function getProductImage(product) {
   return product.image_url || PRODUCT_IMAGES[product.slug] || CATEGORY_IMAGES[product.category]
