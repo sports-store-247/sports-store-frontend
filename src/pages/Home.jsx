@@ -38,7 +38,16 @@ export default function Home() {
       />
       <section className="hero">
         <img className="hero-image" src={HERO_IMAGE} alt="Runner training outdoors" />
-        <span className="hero-caption">Thank You IITC</span>
+        <div className="hero-shade" />
+        <div className="hero-content">
+          <span className="eyebrow">Stryda performance / 2026</span>
+          <h1>Move faster.<br />Go further.</h1>
+          <p>Technical essentials built to keep up with every mile, lift and leap.</p>
+          <div className="hero-actions">
+            <Link to="/products" className="button">Shop the collection</Link>
+            <Link to="/products?category=running-shoes" className="text-link">Explore running →</Link>
+          </div>
+        </div>
       </section>
 
       <section className="benefits" aria-label="Store benefits">
